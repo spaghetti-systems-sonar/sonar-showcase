@@ -20,7 +20,10 @@
         <java.version>21</java.version>
         <!-- SonarQube module key - must be unique for each module -->
         <sonar.moduleKey>${sonar.projectKey}:${project.artifactId}</sonar.moduleKey>
-        <sonar.exclusions></sonar.exclusions>
+        <!-- Override parent inclusions so this module indexes Java source, not dependency files (root indexes those for SCA) -->
+        <sonar.sources>src/main/java</sonar.sources>
+        <sonar.inclusions>**/*.java</sonar.inclusions>
+        <sonar.exclusions>pom.xml</sonar.exclusions>
     </properties>
 
     <dependencies>

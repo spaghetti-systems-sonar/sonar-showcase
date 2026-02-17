@@ -338,50 +338,124 @@ public class UserController {
         
         return ResponseEntity.ok("Password updated");
     }
-    
+
     /**
-     * Generate password reset token for a user
-     * 
-     * SEC: Uses weak random number generator (java:S5445)
-     * Should use SecureRandom instead of Random for security-sensitive operations
-     * 
-     * @param id The user ID
-     * @return ResponseEntity containing the reset token
+     * SEC-12: LDAP Injection vulnerability - S2078
+     * LDAP filter constructed with unsanitized user input
+     *
+     * Attack examples:
+     * - username=*)(uid=*))(|(uid=* (returns all users)
+     * - username=admin)(|(password=*)) (bypasses authentication)
+     *
+     * @param username Username for LDAP search
+     * @return LDAP search result
      */
     @Operation(
-        summary = "Generate password reset token", 
-        description = "Generates a password reset token for the specified user. " +
-                     "⚠️ SECURITY: Uses weak random number generator (java:S5445) - " +
-                     "java.util.Random is predictable and should not be used for security tokens"
+        summary = "LDAP user search (VULNERABLE)",
+        description = "🔴 LDAP INJECTION VULNERABILITY - Username directly concatenated into LDAP filter. " +
+                     "Attacker can manipulate LDAP queries. " +
+                     "Attack example: ?username=*)(uid=*))(|(uid=* to retrieve all users"
     )
-    @ApiResponse(responseCode = "200", description = "Reset token generated")
-    @ApiResponse(responseCode = "404", description = "User not found")
-    @PostMapping("/{id}/reset-token")
-    public ResponseEntity<Map<String, String>> generateResetToken(
-            @Parameter(description = "User ID", example = "1")
-            @PathVariable("id") Long id) {
-        
-        // REL: NPE risk - .get() on Optional without check
-        User user = userRepository.findById(id).get();
-        
-        // SEC: java:S5445 - Using java.util.Random instead of SecureRandom
-        // Random is predictable and should not be used for security-sensitive operations
-        java.util.Random random = new java.util.Random();
-        
-        // Generate a 32-character alphanumeric token
-        StringBuilder token = new StringBuilder();
-        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        for (int i = 0; i < 32; i++) {
-            token.append(chars.charAt(random.nextInt(chars.length())));
+    @GetMapping("/ldap-search")
+    public ResponseEntity<String> ldapSearch(
+            @Parameter(description = "Username for LDAP search (vulnerable to LDAP injection)",
+                      example = "john")
+            @RequestParam String username) {
+        try {
+            // SEC: LDAP injection - user input directly in filter
+            // SHOULD USE: Properly escaped LDAP filter or prepared statements
+            String filter = "(&(objectClass=user)(uid=" + username + "))";
+
+            // Simulated LDAP search (in real app would connect to LDAP server)
+            // DirContext ctx = new InitialDirContext();
+            // NamingEnumeration results = ctx.search("dc=example,dc=com", filter, controls);
+
+            // For demo, just return the filter that would be used
+            return ResponseEntity.ok("LDAP filter (VULNERABLE): " + filter +
+                                   "\n\nIn a real app, this would execute against LDAP server." +
+                                   "\n\nAttack example: username=*)(uid=*))(|(uid=* would return all users.");
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("LDAP error: " + e.getMessage());
         }
-        
-        Map<String, String> response = new HashMap<>();
-        response.put("userId", String.valueOf(user.getId()));
-        response.put("username", user.getUsername());
-        response.put("resetToken", token.toString());
-        response.put("message", "Password reset token generated. Use this token to reset your password.");
-        
-        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * SEC: SQL Injection in INSERT statement
+     *
+     * @param username Username
+     * @param email Email
+     * @return Success message
+     */
+    @Operation(
+        summary = "Insert user (VULNERABLE)",
+        description = "🔴 SQL INJECTION in INSERT statement. " +
+                     "Attack: username=admin', 'admin@example.com'); DROP TABLE users;--"
+    )
+    @PostMapping("/insert-unsafe")
+    public ResponseEntity<String> insertUserUnsafe(
+            @RequestParam String username,
+            @RequestParam String email) {
+        try {
+            // SEC: SQL Injection in INSERT
+            String sql = "INSERT INTO users (username, email, password, role, active, created_at) VALUES ('" +
+                        username + "', '" + email + "', 'password123', 'user', true, CURRENT_TIMESTAMP)";
+            entityManager.createNativeQuery(sql).executeUpdate();
+            return ResponseEntity.ok("User inserted");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Insert error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * SEC: SQL Injection in UPDATE statement
+     *
+     * @param id User ID
+     * @param email New email
+     * @return Success message
+     */
+    @Operation(
+        summary = "Update email (VULNERABLE)",
+        description = "🔴 SQL INJECTION in UPDATE statement. " +
+                     "Attack: email=test@example.com', role='ADMIN' WHERE '1'='1"
+    )
+    @PutMapping("/{id}/email-unsafe")
+    public ResponseEntity<String> updateEmailUnsafe(
+            @PathVariable Long id,
+            @RequestParam String email) {
+        try {
+            // SEC: SQL Injection in UPDATE
+            String sql = "UPDATE users SET email = '" + email + "' WHERE id = " + id;
+            entityManager.createNativeQuery(sql).executeUpdate();
+            return ResponseEntity.ok("Email updated");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Update error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * SEC: SQL Injection in LIMIT clause
+     *
+     * @param limit Limit value
+     * @return List of users
+     */
+    @Operation(
+        summary = "Get users with limit (VULNERABLE)",
+        description = "🔴 SQL INJECTION in LIMIT clause. " +
+                     "Attack: limit=1; DROP TABLE users;--"
+    )
+    @GetMapping("/with-limit")
+    public ResponseEntity<List<User>> getUsersWithLimit(
+            @RequestParam String limit) {
+        try {
+            // SEC: SQL Injection via LIMIT
+            String sql = "SELECT * FROM users LIMIT " + limit;
+            @SuppressWarnings("unchecked")
+            List<User> users = entityManager.createNativeQuery(sql, User.class).getResultList();
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ArrayList<>());
+        }
     }
 }
 

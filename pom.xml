@@ -35,7 +35,12 @@
         <sonar.projectKey>sonarcloud-demos_showcase</sonar.projectKey>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <sonar.organization>sonarcloud-demos</sonar.organization>
-        
+        <sonar.maven.scanAll>true</sonar.maven.scanAll>
+        <!-- Root module: include dependency files (for SCA) and root infra; exclude only build/output dirs -->
+        <sonar.sources>.</sonar.sources>
+        <sonar.inclusions>**/pom.xml,**/package.json,**/package-lock.json,.github/**,Dockerfile,docker-compose.yml,*.pem</sonar.inclusions>
+        <sonar.exclusions>**/node_modules/**,**/target/**,**/dist/**,**/build/**,**/build-wrapper-dump.json</sonar.exclusions>
+
         <!-- Application version (used for resource filtering) -->
         <app.version>${project.version}</app.version>
     </properties>

@@ -167,3 +167,120 @@ describe('CommentDisplay Button Interactions', () => {
   })
 })
 
+describe('CommentDisplay Delete Functionality', () => {
+  it('should render delete button for each comment', async () => {
+    render(<CommentDisplay {...mockProps} />)
+    
+    // Wait for initial comments to render
+    await screen.findByText('User1')
+    
+    const deleteButtons = screen.getAllByRole('button', { name: /Delete/i })
+    expect(deleteButtons.length).toBeGreaterThan(0)
+  })
+
+  it('should delete a comment when delete button is clicked', async () => {
+    render(<CommentDisplay {...mockProps} />)
+    
+    // Wait for initial comments
+    await screen.findByText('User1')
+    
+    // Verify User1 comment exists
+    expect(screen.getByText('User1')).toBeInTheDocument()
+    
+    // Find and click delete button for User1 comment
+    const deleteButtons = screen.getAllByRole('button', { name: /Delete/i })
+    const user1DeleteButton = deleteButtons.find(button => 
+      button.getAttribute('aria-label')?.includes('User1')
+    )
+    
+    expect(user1DeleteButton).toBeInTheDocument()
+    if (user1DeleteButton) {
+      fireEvent.click(user1DeleteButton)
+      
+      // User1 comment should be removed
+      expect(screen.queryByText('User1')).not.toBeInTheDocument()
+    }
+  })
+
+  it('should not delete other comments when one is deleted', async () => {
+    render(<CommentDisplay {...mockProps} />)
+    
+    // Wait for initial comments
+    await screen.findByText('User1')
+    
+    // Verify all initial comments exist
+    expect(screen.getByText('User1')).toBeInTheDocument()
+    expect(screen.getByText('Attacker')).toBeInTheDocument()
+    expect(screen.getByText('Hacker')).toBeInTheDocument()
+    
+    // Delete User1 comment
+    const deleteButtons = screen.getAllByRole('button', { name: /Delete/i })
+    const user1DeleteButton = deleteButtons.find(button => 
+      button.getAttribute('aria-label')?.includes('User1')
+    )
+    
+    if (user1DeleteButton) {
+      fireEvent.click(user1DeleteButton)
+      
+      // User1 should be gone, but others should remain
+      expect(screen.queryByText('User1')).not.toBeInTheDocument()
+      expect(screen.getByText('Attacker')).toBeInTheDocument()
+      expect(screen.getByText('Hacker')).toBeInTheDocument()
+    }
+  })
+
+  it('should allow deleting multiple comments', async () => {
+    render(<CommentDisplay {...mockProps} />)
+    
+    // Wait for initial comments
+    await screen.findByText('User1')
+    
+    const initialDeleteButtons = screen.getAllByRole('button', { name: /Delete/i })
+    expect(initialDeleteButtons.length).toBe(3) // Should have 3 initial comments
+    
+    // Delete first comment
+    fireEvent.click(initialDeleteButtons[0])
+    
+    // Should have 2 delete buttons left
+    const remainingDeleteButtons = screen.getAllByRole('button', { name: /Delete/i })
+    expect(remainingDeleteButtons.length).toBe(2)
+    
+    // Delete another comment
+    fireEvent.click(remainingDeleteButtons[0])
+    
+    // Should have 1 delete button left
+    const finalDeleteButtons = screen.getAllByRole('button', { name: /Delete/i })
+    expect(finalDeleteButtons.length).toBe(1)
+  })
+
+  it('should handle deleting a newly added comment', async () => {
+    render(<CommentDisplay {...mockProps} />)
+    
+    // Wait for initial comments
+    await screen.findByText('User1')
+    
+    // Add a new comment
+    const textarea = screen.getByPlaceholderText('Enter your comment (HTML allowed)...')
+    fireEvent.change(textarea, { target: { value: 'Test comment to delete' } })
+    
+    const postButton = screen.getByRole('button', { name: 'Post Comment' })
+    fireEvent.click(postButton)
+    
+    // Wait for new comment to appear
+    await screen.findByText('CurrentUser')
+    
+    // Find delete button for the new comment
+    const deleteButtons = screen.getAllByRole('button', { name: /Delete/i })
+    const currentUserDeleteButton = deleteButtons.find(button => 
+      button.getAttribute('aria-label')?.includes('CurrentUser')
+    )
+    
+    expect(currentUserDeleteButton).toBeInTheDocument()
+    if (currentUserDeleteButton) {
+      fireEvent.click(currentUserDeleteButton)
+      
+      // CurrentUser comment should be removed
+      expect(screen.queryByText('CurrentUser')).not.toBeInTheDocument()
+    }
+  })
+})

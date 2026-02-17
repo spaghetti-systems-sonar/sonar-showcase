@@ -19,9 +19,10 @@
     <properties>
         <!-- SonarQube module key - must be unique for each module -->
         <sonar.moduleKey>${sonar.projectKey}:${project.artifactId}</sonar.moduleKey>
-        <!-- SonarQube configuration for JavaScript/TypeScript sources -->
+        <!-- This module exists only for SCA; dependency files are indexed by root. Exclude all so nothing is indexed twice. -->
         <sonar.sources>.</sonar.sources>
-        <sonar.exclusions>**/node_modules/**,**/dist/**,**/build/**,**/*.config.js,**/*.config.ts</sonar.exclusions>
+        <sonar.inclusions>**/nonexistent/**</sonar.inclusions>
+        <sonar.exclusions>**</sonar.exclusions>
         <sonar.sca.npmNoResolve>true</sonar.sca.npmNoResolve>
         <!-- Skip all Maven build phases for this module -->
         <maven.compiler.skip>true</maven.compiler.skip>
@@ -30,5 +31,36 @@
 
     <!-- No build section - Maven will skip building this module -->
     <!-- SonarQube will still scan package.json and package-lock.json for supply chain vulnerabilities -->
+
+    <!-- Vulnerable Java dependencies for SCA demonstration (not actually built) -->
+    <dependencies>
+        <!-- Log4Shell vulnerability (CVE-2021-44228) -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>2.14.1</version>
+        </dependency>
+
+        <!-- Spring4Shell vulnerability (CVE-2022-22965) -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-beans</artifactId>
+            <version>5.3.16</version>
+        </dependency>
+
+        <!-- Jackson vulnerability (CVE-2020-36518) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.10.0</version>
+        </dependency>
+
+        <!-- Apache Commons Text (CVE-2022-42889) -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>1.9</version>
+        </dependency>
+    </dependencies>
 
 </project>

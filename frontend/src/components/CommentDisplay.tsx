@@ -20,6 +20,7 @@ interface Comment {
 function CommentDisplay({ theme, config }: CommentDisplayProps) {
   const [comments, setComments] = useState<Comment[]>([])
   const [newComment, setNewComment] = useState('')
+  const [nextId, setNextId] = useState(4) // Start after initial comments
   
   // MNT: Console spam
   console.log('CommentDisplay rendering')
@@ -49,36 +50,28 @@ function CommentDisplay({ theme, config }: CommentDisplayProps) {
     ])
   }, [])
 
-  /**
-   * SEC-04: XSS Vulnerability
-   * Using dangerouslySetInnerHTML with unsanitized user content
-   */
-  const renderHtmlComment = (html: string) => {
-    // SEC: This allows XSS attacks - user content is rendered as HTML
-    return <div dangerouslySetInnerHTML={{ __html: html }} />
-  }
-
-  /**
-   * SEC: Another XSS pattern - creating elements from user input
-   */
-  const createMarkup = (content: string) => {
-    // SEC: No sanitization of user content
-    return { __html: content }
-  }
-
   const handleSubmit = () => {
+    if (!newComment.trim()) {
+      return // Don't add empty comments
+    }
+    
     // SEC: User input directly used without sanitization
     const newCommentObj: Comment = {
-      id: comments.length + 1,
+      id: nextId,
       author: 'CurrentUser',
       content: newComment,
       htmlContent: newComment // SEC: Raw user input becomes HTML
     }
     
     setComments([...comments, newCommentObj])
+    setNextId(nextId + 1)
     setNewComment('')
     
     console.log('New comment added:', newComment)
+  }
+
+  const handleDelete = (id: number) => {
+    setComments(comments.filter(comment => comment.id !== id))
   }
 
   return (
@@ -88,19 +81,23 @@ function CommentDisplay({ theme, config }: CommentDisplayProps) {
       <div className="comments-list">
         {comments.map((comment) => (
           <div key={comment.id} className="comment">
-            <strong>{comment.author}</strong>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <strong>{comment.author}</strong>
+              <button 
+                className="button" 
+                onClick={() => handleDelete(comment.id)}
+                style={{ marginLeft: '10px', padding: '4px 8px', fontSize: '12px' }}
+                aria-label={`Delete comment by ${comment.author}`}
+              >
+                Delete
+              </button>
+            </div>
             
             {/* SEC-04: XSS - Rendering unsanitized HTML */}
             <div 
               className="comment-content"
               dangerouslySetInnerHTML={{ __html: comment.htmlContent }}
             />
-            
-            {/* SEC: Another XSS pattern */}
-            {renderHtmlComment(comment.content)}
-            
-            {/* SEC: Yet another XSS pattern */}
-            <div dangerouslySetInnerHTML={createMarkup(comment.content)} />
           </div>
         ))}
       </div>
