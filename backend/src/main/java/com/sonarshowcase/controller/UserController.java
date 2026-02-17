@@ -336,5 +336,124 @@ public class UserController {
         
         return ResponseEntity.ok("Password updated");
     }
+
+    /**
+     * SEC-12: LDAP Injection vulnerability - S2078
+     * LDAP filter constructed with unsanitized user input
+     *
+     * Attack examples:
+     * - username=*)(uid=*))(|(uid=* (returns all users)
+     * - username=admin)(|(password=*)) (bypasses authentication)
+     *
+     * @param username Username for LDAP search
+     * @return LDAP search result
+     */
+    @Operation(
+        summary = "LDAP user search (VULNERABLE)",
+        description = "🔴 LDAP INJECTION VULNERABILITY - Username directly concatenated into LDAP filter. " +
+                     "Attacker can manipulate LDAP queries. " +
+                     "Attack example: ?username=*)(uid=*))(|(uid=* to retrieve all users"
+    )
+    @GetMapping("/ldap-search")
+    public ResponseEntity<String> ldapSearch(
+            @Parameter(description = "Username for LDAP search (vulnerable to LDAP injection)",
+                      example = "john")
+            @RequestParam String username) {
+        try {
+            // SEC: LDAP injection - user input directly in filter
+            // SHOULD USE: Properly escaped LDAP filter or prepared statements
+            String filter = "(&(objectClass=user)(uid=" + username + "))";
+
+            // Simulated LDAP search (in real app would connect to LDAP server)
+            // DirContext ctx = new InitialDirContext();
+            // NamingEnumeration results = ctx.search("dc=example,dc=com", filter, controls);
+
+            // For demo, just return the filter that would be used
+            return ResponseEntity.ok("LDAP filter (VULNERABLE): " + filter +
+                                   "\n\nIn a real app, this would execute against LDAP server." +
+                                   "\n\nAttack example: username=*)(uid=*))(|(uid=* would return all users.");
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("LDAP error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * SEC: SQL Injection in INSERT statement
+     *
+     * @param username Username
+     * @param email Email
+     * @return Success message
+     */
+    @Operation(
+        summary = "Insert user (VULNERABLE)",
+        description = "🔴 SQL INJECTION in INSERT statement. " +
+                     "Attack: username=admin', 'admin@example.com'); DROP TABLE users;--"
+    )
+    @PostMapping("/insert-unsafe")
+    public ResponseEntity<String> insertUserUnsafe(
+            @RequestParam String username,
+            @RequestParam String email) {
+        try {
+            // SEC: SQL Injection in INSERT
+            String sql = "INSERT INTO users (username, email, password, role, active, created_at) VALUES ('" +
+                        username + "', '" + email + "', 'password123', 'user', true, CURRENT_TIMESTAMP)";
+            entityManager.createNativeQuery(sql).executeUpdate();
+            return ResponseEntity.ok("User inserted");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Insert error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * SEC: SQL Injection in UPDATE statement
+     *
+     * @param id User ID
+     * @param email New email
+     * @return Success message
+     */
+    @Operation(
+        summary = "Update email (VULNERABLE)",
+        description = "🔴 SQL INJECTION in UPDATE statement. " +
+                     "Attack: email=test@example.com', role='ADMIN' WHERE '1'='1"
+    )
+    @PutMapping("/{id}/email-unsafe")
+    public ResponseEntity<String> updateEmailUnsafe(
+            @PathVariable Long id,
+            @RequestParam String email) {
+        try {
+            // SEC: SQL Injection in UPDATE
+            String sql = "UPDATE users SET email = '" + email + "' WHERE id = " + id;
+            entityManager.createNativeQuery(sql).executeUpdate();
+            return ResponseEntity.ok("Email updated");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Update error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * SEC: SQL Injection in LIMIT clause
+     *
+     * @param limit Limit value
+     * @return List of users
+     */
+    @Operation(
+        summary = "Get users with limit (VULNERABLE)",
+        description = "🔴 SQL INJECTION in LIMIT clause. " +
+                     "Attack: limit=1; DROP TABLE users;--"
+    )
+    @GetMapping("/with-limit")
+    public ResponseEntity<List<User>> getUsersWithLimit(
+            @RequestParam String limit) {
+        try {
+            // SEC: SQL Injection via LIMIT
+            String sql = "SELECT * FROM users LIMIT " + limit;
+            @SuppressWarnings("unchecked")
+            List<User> users = entityManager.createNativeQuery(sql, User.class).getResultList();
+            return ResponseEntity.ok(users);
+        } catch (Exception e) {
+            return ResponseEntity.ok(new ArrayList<>());
+        }
+    }
 }
 

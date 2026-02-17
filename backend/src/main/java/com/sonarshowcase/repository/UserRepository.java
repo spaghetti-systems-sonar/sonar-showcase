@@ -106,5 +106,60 @@ class UserRepositoryCustomImpl {
         String sql = "DELETE FROM users WHERE role = '" + role + "'";
         entityManager.createNativeQuery(sql).executeUpdate();
     }
+
+    /**
+     * SEC: SQL Injection in INSERT statement
+     */
+    public void insertUserUnsafe(String username, String email) {
+        // SEC: SQL Injection in INSERT - can inject malicious data
+        String sql = "INSERT INTO users (username, email) VALUES ('" + username + "', '" + email + "')";
+        // Attack: username = admin', 'admin@example.com'); DROP TABLE users;--
+        entityManager.createNativeQuery(sql).executeUpdate();
+    }
+
+    /**
+     * SEC: SQL Injection in UPDATE statement
+     */
+    public void updateUserEmailUnsafe(Long userId, String email) {
+        // SEC: SQL Injection in UPDATE
+        String sql = "UPDATE users SET email = '" + email + "' WHERE id = " + userId;
+        // Attack: email = admin@example.com', role='ADMIN' WHERE '1'='1
+        entityManager.createNativeQuery(sql).executeUpdate();
+    }
+
+    /**
+     * SEC: Second-order SQL Injection
+     * User input stored in DB is later used in unsafe query
+     */
+    public List<User> findUsersByStoredPreference(Long userId) {
+        // First, get user's stored search preference (could be malicious)
+        User user = entityManager.find(User.class, userId);
+        if (user == null || user.getUsername() == null) {
+            return List.of();
+        }
+        String searchPref = user.getUsername(); // Could contain: ' OR '1'='1
+
+        // Second, use it in unsafe query (second-order injection)
+        String sql = "SELECT * FROM users WHERE username = '" + searchPref + "'";
+        try {
+            return entityManager.createNativeQuery(sql, User.class).getResultList();
+        } catch (Exception e) {
+            return List.of(); // REL: Swallowing exception
+        }
+    }
+
+    /**
+     * SEC: SQL Injection in LIMIT clause
+     */
+    public List<User> findUsersWithLimitUnsafe(String limitValue) {
+        // SEC: SQL Injection via LIMIT
+        String sql = "SELECT * FROM users LIMIT " + limitValue;
+        // Attack: limitValue = "1; DROP TABLE users;--"
+        try {
+            return entityManager.createNativeQuery(sql, User.class).getResultList();
+        } catch (Exception e) {
+            return List.of(); // REL: Swallowing exception
+        }
+    }
 }
 
