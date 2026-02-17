@@ -280,12 +280,20 @@ This project uses a **hybrid configuration approach** for SonarQube scanning:
 
 ### Vulnerable Endpoints (Security Demo)
 
+#### SQL Injection
 | Method | Endpoint | Vulnerability |
 |--------|----------|---------------|
 | GET | `/api/v1/users/login?username=X&password=Y` | 🔴 SQL Injection |
 | GET | `/api/v1/users/vulnerable-search?term=X` | 🔴 SQL Injection |
-| GET | `/api/v1/users/sorted?orderBy=X` | 🔴 SQL Injection |
+| GET | `/api/v1/users/sorted?orderBy=X` | 🔴 SQL Injection (ORDER BY) |
+| GET | `/api/v1/users/with-limit?limit=X` | 🔴 SQL Injection (LIMIT) |
+| POST | `/api/v1/users/insert-unsafe` | 🔴 SQL Injection (INSERT) |
+| PUT | `/api/v1/users/{id}/email-unsafe` | 🔴 SQL Injection (UPDATE) |
 | GET | `/api/v1/activity-logs/search?startDate=X&endDate=Y&userId=Z` | 🔴 SQL Injection |
+
+#### Path Traversal
+| Method | Endpoint | Vulnerability |
+|--------|----------|---------------|
 | GET | `/api/v1/files/download?filename=X` | 🔴 Path Traversal |
 | GET | `/api/v1/files/read?path=X` | 🔴 Path Traversal |
 | GET | `/api/v1/files/profile?username=X` | 🔴 Path Traversal |
@@ -294,6 +302,50 @@ This project uses a **hybrid configuration approach** for SonarQube scanning:
 | POST | `/api/v1/files/export?filename=X` | 🔴 Path Traversal (Write) |
 | POST | `/api/v1/files/extract?zipPath=X&destDir=Y` | 🔴 Zip Slip Vulnerability |
 | DELETE | `/api/v1/files/delete?filename=X` | 🔴 Path Traversal (Delete) |
+
+#### XXE Injection
+| Method | Endpoint | Vulnerability |
+|--------|----------|---------------|
+| POST | `/api/v1/xml/parse` | 🔴 XXE Injection |
+| POST | `/api/v1/xml/config` | 🔴 XXE Injection |
+
+#### SSRF
+| Method | Endpoint | Vulnerability |
+|--------|----------|---------------|
+| GET | `/api/v1/proxy/fetch?url=X` | 🔴 SSRF |
+| POST | `/api/v1/proxy/webhook?webhookUrl=X` | 🔴 SSRF |
+| GET | `/api/v1/proxy/image?imageUrl=X` | 🔴 SSRF |
+
+#### Command Injection
+| Method | Endpoint | Vulnerability |
+|--------|----------|---------------|
+| GET | `/api/v1/system/ping?host=X` | 🔴 Command Injection |
+| GET | `/api/v1/system/dns?domain=X` | 🔴 Command Injection |
+| POST | `/api/v1/system/compress?filename=X` | 🔴 Command Injection |
+
+#### Insecure Deserialization
+| Method | Endpoint | Vulnerability |
+|--------|----------|---------------|
+| POST | `/api/v1/data/import` | 🔴 Insecure Deserialization (RCE) |
+| POST | `/api/v1/data/session/restore` | 🔴 Insecure Deserialization |
+
+#### ReDoS
+| Method | Endpoint | Vulnerability |
+|--------|----------|---------------|
+| GET | `/api/v1/validate/email?input=X` | 🔴 ReDoS |
+| GET | `/api/v1/validate/url?url=X` | 🔴 ReDoS |
+| GET | `/api/v1/validate/password?password=X` | 🔴 ReDoS |
+
+#### JWT Vulnerabilities
+| Method | Endpoint | Vulnerability |
+|--------|----------|---------------|
+| POST | `/api/v1/auth/login` | 🔴 Weak JWT secret, No expiration |
+| GET | `/api/v1/auth/verify` | 🔴 Accepts "none" algorithm |
+
+#### LDAP Injection
+| Method | Endpoint | Vulnerability |
+|--------|----------|---------------|
+| GET | `/api/v1/users/ldap-search?username=X` | 🔴 LDAP Injection |
 
 ### Example Requests
 
@@ -312,17 +364,20 @@ curl -X POST http://localhost:8080/api/v1/users \
 
 ## Intentional Issues for SonarCloud Demo
 
-### Security (15+ issues)
+### Security (100+ issues)
 
-#### SQL Injection (S3649)
+#### SQL Injection (S3649) - 10+ instances
 | Endpoint | Attack Vector | Description |
 |----------|---------------|-------------|
 | `GET /api/v1/users/login` | `username=admin'--` | Authentication bypass via SQL comment |
 | `GET /api/v1/users/vulnerable-search` | `term=' UNION SELECT...` | Data extraction via UNION injection |
 | `GET /api/v1/users/sorted` | `orderBy=username; DROP TABLE` | ORDER BY clause injection |
+| `GET /api/v1/users/with-limit` | `limit=1; DROP TABLE users;--` | LIMIT clause injection |
+| `POST /api/v1/users/insert-unsafe` | `username=admin'); DROP TABLE--` | INSERT statement injection |
+| `PUT /api/v1/users/{id}/email-unsafe` | `email=x', role='ADMIN' WHERE '1'='1` | UPDATE statement injection |
 | `GET /api/v1/activity-logs/search` | `startDate=2025-01-01' OR '1'='1'--` | Date range bypass via SQL injection |
 | `GET /api/v1/activity-logs/search` | `userId=1' UNION SELECT * FROM users--` | Data extraction via UNION injection |
-| `UserRepositoryCustomImpl` | Internal methods | SQL concat in findUsersBySearch, authenticateUser |
+| `UserRepositoryCustomImpl` | Internal methods | SQL concat in findUsersBySearch, authenticateUser, insertUserUnsafe, updateUserEmailUnsafe |
 | `ActivityLogService` | `getActivityLogsByDateRange()` | Clear source-to-sink path: HTTP params → Service → SQL |
 
 #### Path Traversal (S2083)
@@ -335,15 +390,84 @@ curl -X POST http://localhost:8080/api/v1/users \
 | `POST /api/v1/files/export` | `filename=../../../tmp/pwned` | Write arbitrary files |
 | `DELETE /api/v1/files/delete` | `filename=../../../important` | Delete arbitrary files |
 
+#### XML External Entity (XXE) Injection (S2755, S4829)
+| Endpoint | Attack Vector | Description |
+|----------|---------------|-------------|
+| `POST /api/v1/xml/parse` | `<!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>` | Read arbitrary files via XXE |
+| `POST /api/v1/xml/config` | XXE in configuration upload | Read files, SSRF, DoS |
+
+#### Server-Side Request Forgery (SSRF) (S5144)
+| Endpoint | Attack Vector | Description |
+|----------|---------------|-------------|
+| `GET /api/v1/proxy/fetch` | `url=http://localhost:8080/actuator` | Access internal services |
+| `GET /api/v1/proxy/fetch` | `url=http://169.254.169.254/latest/meta-data/` | Access cloud metadata |
+| `POST /api/v1/proxy/webhook` | Internal webhook URLs | Test webhooks against internal services |
+| `GET /api/v1/proxy/image` | Internal image URLs | Scan internal network |
+
+#### Command Injection (S2076, S4823)
+| Endpoint | Attack Vector | Description |
+|----------|---------------|-------------|
+| `GET /api/v1/system/ping` | `host=google.com; cat /etc/passwd` | Command chaining |
+| `GET /api/v1/system/ping` | `host=google.com | whoami` | Pipe commands |
+| `GET /api/v1/system/dns` | `domain=example.com; rm -rf /` | DNS lookup injection |
+| `POST /api/v1/system/compress` | Shell injection in tar command | Arbitrary command execution |
+
+#### Insecure Deserialization (S5135)
+| Endpoint | Attack Vector | Description |
+|----------|---------------|-------------|
+| `POST /api/v1/data/import` | Malicious serialized object (ysoserial) | Remote Code Execution (RCE) |
+| `POST /api/v1/data/session/restore` | Malicious session object | RCE via deserialization |
+
+#### Regular Expression Denial of Service (ReDoS) (S5852, S6019)
+| Endpoint | Attack Vector | Description |
+|----------|---------------|-------------|
+| `GET /api/v1/validate/email` | `aaaaaaaaaaaaaaaaaaaaX` | Catastrophic backtracking causes CPU exhaustion |
+| `GET /api/v1/validate/url` | Long URL with nested patterns | DoS via regex backtracking |
+| `GET /api/v1/validate/password` | Password with repeated chars | Nested quantifiers cause exponential time |
+
+#### JWT Vulnerabilities (S5659)
+| Endpoint | Attack Vector | Description |
+|----------|---------------|-------------|
+| `POST /api/v1/auth/login` | Weak secret "weak" | Easily brute-forced JWT secret |
+| `POST /api/v1/auth/login` | No expiration time | Tokens never expire |
+| `GET /api/v1/auth/verify` | `{"alg":"none"}` | Accepts unsigned tokens (critical) |
+
+#### LDAP Injection (S2078)
+| Endpoint | Attack Vector | Description |
+|----------|---------------|-------------|
+| `GET /api/v1/users/ldap-search` | `username=*)(uid=*))(|(uid=*` | Retrieve all LDAP users |
+| `GET /api/v1/users/ldap-search` | `username=admin)(|(password=*))` | Bypass authentication |
+
 #### Supply Chain Security (SCA)
-| Module | Malicious Package | Vulnerability ID | Description |
-|--------|------------------|------------------|-------------|
+
+**Malicious Packages (npm):**
+| Module | Package | Vulnerability ID | Description |
+|--------|---------|------------------|-------------|
 | `malicious-attic` | `chai-tests-async` | MAL-2026-172 | Embedded malicious code (CWE-506) |
 | `malicious-attic` | `json-mappings` | MAL-2026-160 | Embedded malicious code (CWE-506) |
 | `malicious-attic` | `yunxohang10` | MAL-2026-182 | Embedded malicious code (CWE-506) |
 | `malicious-attic` | `jwtdapp` | MAL-2026-175 | Embedded malicious code (CWE-506) |
 
-The `malicious-attic` module contains intentionally malicious npm packages for demonstrating SonarQube's supply chain security analysis capabilities. These packages are flagged in the OSV database and should trigger security alerts during scanning.
+**Vulnerable Dependencies (npm):**
+| Module | Package | Version | CVE | Description |
+|--------|---------|---------|-----|-------------|
+| `malicious-attic` | `lodash` | 4.17.15 | CVE-2019-10744 | Prototype Pollution |
+| `malicious-attic` | `minimist` | 1.2.5 | CVE-2020-7598 | Prototype Pollution |
+| `malicious-attic` | `yargs-parser` | 13.1.1 | CVE-2020-7608 | Prototype Pollution |
+| `malicious-attic` | `node-fetch` | 2.6.0 | CVE-2020-15168 | Information Disclosure |
+| `malicious-attic` | `axios` | 0.21.1 | CVE-2021-3749 | SSRF |
+| `malicious-attic` | `express` | 4.17.0 | CVE-2022-24999 | Open Redirect |
+| `malicious-attic` | `moment` | 2.29.1 | CVE-2022-24785 | Path Traversal |
+
+**Vulnerable Dependencies (Maven):**
+| Module | Package | Version | CVE | Description |
+|--------|---------|---------|-----|-------------|
+| `malicious-attic` | `log4j-core` | 2.14.1 | CVE-2021-44228 | Log4Shell - Remote Code Execution |
+| `malicious-attic` | `spring-beans` | 5.3.16 | CVE-2022-22965 | Spring4Shell - Remote Code Execution |
+| `malicious-attic` | `jackson-databind` | 2.10.0 | CVE-2020-36518 | Deserialization vulnerability |
+| `malicious-attic` | `commons-text` | 1.9 | CVE-2022-42889 | Text4Shell - RCE via variable interpolation |
+
+The `malicious-attic` module contains intentionally malicious packages and vulnerable dependencies for demonstrating SonarQube's supply chain security analysis capabilities. These packages are flagged in security databases and should trigger security alerts during scanning.
 
 #### Other Security Issues
 - Hardcoded credentials throughout (PaymentService, DatabaseConfig)
@@ -359,8 +483,10 @@ The `malicious-attic` module contains intentionally malicious npm packages for d
 - Race conditions
 - Stale closure in useEffect
 
-### Maintainability (50+ issues)
-- God class (DataManager.java - 400+ lines)
+### Maintainability (200+ issues)
+- God class (DataManager.java - 750+ lines)
+- Extreme cognitive complexity (processComplexBusinessLogic - complexity > 50)
+- Long parameter list (createDetailedReport - 12 parameters)
 - Magic numbers everywhere
 - 'any' type abuse in TypeScript
 - Duplicated validation code
@@ -368,6 +494,13 @@ The `malicious-attic` module contains intentionally malicious npm packages for d
 - Console.log spam
 - TODO/FIXME comments
 - Skeleton tests with no assertions
+- Dead code (unreachable statements, unused methods)
+- React anti-patterns (BadPractices.tsx):
+  - Missing dependencies in useEffect
+  - Array index as key
+  - Missing accessibility attributes
+  - Poor color contrast
+  - Inline functions in JSX
 
 ## Development
 
