@@ -646,4 +646,175 @@ public class DataManager {
     private void anotherUnusedMethod() {
         System.out.println("Also never called");
     }
+
+    /**
+     * MAINT: Extreme cognitive complexity (complexity > 50)
+     * Deeply nested conditions, loops, and logic
+     *
+     * @param type The type of processing
+     * @param value The value to process
+     * @param flag Boolean flag for processing
+     * @param category The category name
+     * @param priority The priority level
+     * @return Processing result string
+     */
+    public String processComplexBusinessLogic(String type, int value, boolean flag,
+                                             String category, int priority) {
+        if (type != null) {
+            if (type.equals("A")) {
+                if (value > 0) {
+                    if (value < 100) {
+                        for (int i = 0; i < value; i++) {
+                            if (i % 2 == 0) {
+                                if (flag) {
+                                    if (category != null) {
+                                        if (category.startsWith("X")) {
+                                            for (int j = 0; j < 10; j++) {
+                                                if (j > 5) {
+                                                    if (priority == 1) {
+                                                        return "Result1";
+                                                    } else if (priority == 2) {
+                                                        if (Math.random() > 0.5) {
+                                                            return "Result2";
+                                                        } else {
+                                                            continue;
+                                                        }
+                                                    } else {
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        } else if (category.startsWith("Y")) {
+                                            for (String item : new String[]{"a", "b", "c"}) {
+                                                if (item.equals("a")) {
+                                                    return "ResultA";
+                                                } else {
+                                                    continue;
+                                                }
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    if (i > 50) {
+                                        return "Result3";
+                                    }
+                                }
+                            } else {
+                                if (!flag && category == null) {
+                                    return "Result4";
+                                }
+                            }
+                        }
+                    } else if (value >= 100 && value < 1000) {
+                        if (flag) {
+                            return "Result5";
+                        } else {
+                            if (category != null) {
+                                switch (category) {
+                                    case "X":
+                                        return "Result6";
+                                    case "Y":
+                                        if (priority > 0) {
+                                            return "Result7";
+                                        }
+                                        break;
+                                    default:
+                                        return "Result8";
+                                }
+                            }
+                        }
+                    } else {
+                        return "Result9";
+                    }
+                } else {
+                    return "Result10";
+                }
+            } else if (type.equals("B")) {
+                // Similar nested structure...
+                return "ResultB";
+            }
+        }
+        return "DefaultResult";
+    }
+
+    /**
+     * MAINT: Long parameter list (12 parameters)
+     * Should use a builder pattern or parameter object
+     *
+     * @param reportType Type of report to generate
+     * @param format Output format
+     * @param outputPath Path where report will be saved
+     * @param includeHeaders Whether to include headers
+     * @param includeFooters Whether to include footers
+     * @param pageSize Page size for the report
+     * @param fontFamily Font family to use
+     * @param fontSize Font size
+     * @param colorScheme Color scheme name
+     * @param compress Whether to compress output
+     * @param encryption Encryption method
+     * @param watermark Watermark text
+     */
+    public void createDetailedReport(String reportType, String format,
+                                    String outputPath, boolean includeHeaders,
+                                    boolean includeFooters, int pageSize,
+                                    String fontFamily, int fontSize,
+                                    String colorScheme, boolean compress,
+                                    String encryption, String watermark) {
+        // Implementation with too many parameters
+        System.out.println("Creating report with " + reportType);
+        System.out.println("Format: " + format);
+        System.out.println("Output: " + outputPath);
+        System.out.println("Headers: " + includeHeaders);
+        System.out.println("Footers: " + includeFooters);
+        System.out.println("Page size: " + pageSize);
+        System.out.println("Font: " + fontFamily + " " + fontSize);
+        System.out.println("Colors: " + colorScheme);
+        System.out.println("Compress: " + compress);
+        System.out.println("Encryption: " + encryption);
+        System.out.println("Watermark: " + watermark);
+    }
+
+    /**
+     * MAINT: Unreachable code after return
+     *
+     * @param value The value to process
+     * @return Result string
+     */
+    public String processData(int value) {
+        if (value > 0) {
+            return "Positive";
+        } else {
+            return "Negative";
+        }
+
+        // MAINT: Dead code - unreachable
+        // System.out.println("This will never execute");
+        // return "Unreachable";
+    }
+
+    /**
+     * MAINT: Unused variable
+     */
+    public void calculateSomething() {
+        int unusedVariable = 42;
+        int result = 10 + 20;
+        System.out.println(result);
+    }
+
+    /**
+     * MAINT: Switch statement without default case
+     *
+     * @param cat Category identifier
+     * @return Category name
+     */
+    public String processCategory(String cat) {
+        switch (cat) {
+            case "A":
+                return "Category A";
+            case "B":
+                return "Category B";
+            // Missing default case
+        }
+        return "Unknown";
+    }
 }
