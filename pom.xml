@@ -38,7 +38,7 @@
         <sonar.maven.scanAll>true</sonar.maven.scanAll>
         <!-- Root module: include dependency files (for SCA), root infra, and secrets demo; exclude only build/output dirs -->
         <sonar.sources>.</sonar.sources>
-        <sonar.inclusions>**/pom.xml,**/package.json,**/package-lock.json,.github/**,Dockerfile,docker-compose.yml,*.pem,.env,terraform/**,k8s/**</sonar.inclusions>
+        <sonar.inclusions>**/pom.xml,**/package.json,**/package-lock.json,.github/**,Dockerfile,docker-compose.yml,*.pem,secrets.yml,terraform/**,k8s/**</sonar.inclusions>
         <sonar.exclusions>**/node_modules/**,**/target/**,**/dist/**,**/build/**,**/build-wrapper-dump.json</sonar.exclusions>
 
         <!-- Application version (used for resource filtering) -->

@@ -132,7 +132,7 @@
 | `EmailService.java` | ~28 | SMTP password | Plain text password |
 | `DataManager.java` | ~45 | Database credentials | Static final strings |
 | `AuthController.java` | ~40 | JWT secret | "weak" |
-| `.env` file | All | Various secrets | AWS, Stripe, DB, etc. |
+| `secrets.yml` file | All | Various secrets | AWS, Stripe, DB, etc. |
 
 ### Cross-Site Scripting - XSS (S5146)
 

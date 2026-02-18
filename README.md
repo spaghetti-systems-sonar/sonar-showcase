@@ -186,7 +186,7 @@ open backend/target/site/apidocs/index.html
 open frontend/target/site/typedoc/index.html
 ```
 
-See `docs/AUTOMATED_DOCUMENTATION.md` for details and `docs/DOCUMENTATION_LOCATIONS.md` for file locations.
+See `docs/AUTOMATED_DOCUMENTATION.md` for details on how documentation is generated.
 
 ### Interactive API Documentation (Swagger UI)
 
@@ -211,13 +211,12 @@ The documentation is automatically generated from the code and includes:
 
 For detailed specifications and requirements:
 - **Application Specification:** `docs/SPECIFICATION.md` - Complete specification of application behavior
+- **SonarQube Rules Mapping:** `docs/SONARQUBE_RULES_MAPPING.md` - Central mapping of all 300+ issues to SonarQube rules
+- **How to Fix Guide:** `docs/HOW_TO_FIX.md` - Before/after code examples showing how to fix vulnerabilities
 - **API Reference Card:** `docs/API_REFERENCE_CARD.md` - Quick reference for all endpoints
-- **Swagger Testing Guide:** `docs/SWAGGER_TESTING.md` - Guide for testing Swagger UI and generating documentation
-- **Automated Documentation:** `docs/AUTOMATED_DOCUMENTATION.md` - How documentation is generated during build
-- **JavaDoc Guide:** `docs/JAVADOC_GENERATION.md` - Backend JavaDoc generation guide
-- **TypeDoc Guide:** `docs/TYPEDOC_GENERATION.md` - Frontend TypeDoc generation guide
 - **Business Logic:** `docs/business-logic.md` - Business flows and rules
-- **API Reference:** `docs/api-spec.md` - API endpoint reference (legacy, see Swagger UI for current)
+- **Automated Documentation:** `docs/AUTOMATED_DOCUMENTATION.md` - How JavaDoc/TypeDoc are generated during build
+- **Local Development:** `docs/LOCAL_DEVELOPMENT.md` - Development setup guide
 - **AI Assistant Guide:** `docs/AI_ASSISTANT_GUIDE.md` - Guide for AI assistants working on this codebase
 
 ### Scanner Configuration

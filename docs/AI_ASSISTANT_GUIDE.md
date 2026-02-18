@@ -56,7 +56,6 @@ This is the **single source of truth** for:
 ### Supporting Documents
 
 - `docs/business-logic.md` - Business flows and scenarios
-- `docs/REVIEW_FINDINGS.md` - Code review findings
 - `README.md` - Quick start and overview
 
 ---
