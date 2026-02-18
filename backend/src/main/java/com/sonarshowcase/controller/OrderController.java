@@ -136,5 +136,98 @@ public class OrderController {
         // MNT: No persistence of changes
         return ResponseEntity.ok(order);
     }
+
+    /**
+     * Cancel order - IDOR vulnerability
+     *
+     * SEC-IDOR: No ownership verification - any user can cancel any order (S6417)
+     * This demonstrates Insecure Direct Object Reference vulnerability where
+     * a user can manipulate the orderId parameter to cancel orders belonging to other users.
+     *
+     * @param orderId Order ID to cancel
+     * @return ResponseEntity with success message
+     */
+    @Operation(
+        summary = "Cancel order (IDOR vulnerability)",
+        description = "🔴 SECURITY VULNERABILITY: Insecure Direct Object Reference (IDOR). " +
+                     "Any user can cancel ANY order by manipulating the orderId parameter. " +
+                     "No ownership check is performed. Example: User A can cancel User B's orders."
+    )
+    @ApiResponse(responseCode = "200", description = "Order cancelled successfully")
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<String> cancelOrderInsecure(
+            @Parameter(description = "Order ID", example = "1")
+            @PathVariable Long orderId) {
+        // SEC-IDOR: No check if current user owns this order
+        // Rule S6417: Insecure Direct Object Reference
+        Order order = orderService.getOrderById(orderId);
+        order.setStatus("CANCELLED");
+        orderService.updateOrder(order);
+
+        return ResponseEntity.ok("Order " + orderId + " cancelled successfully");
+    }
+
+    /**
+     * View order invoice - IDOR vulnerability
+     *
+     * SEC-IDOR: No authorization check - any user can view any invoice (S6417)
+     *
+     * @param orderId Order ID
+     * @return ResponseEntity with invoice details
+     */
+    @Operation(
+        summary = "View order invoice (IDOR vulnerability)",
+        description = "🔴 SECURITY VULNERABILITY: IDOR. Any user can view ANY order's invoice. " +
+                     "Exposes sensitive financial information without authorization checks."
+    )
+    @ApiResponse(responseCode = "200", description = "Invoice details")
+    @GetMapping("/{orderId}/invoice")
+    public ResponseEntity<String> viewInvoiceInsecure(
+            @Parameter(description = "Order ID", example = "1")
+            @PathVariable Long orderId) {
+        // SEC-IDOR: No ownership verification
+        Order order = orderService.getOrderById(orderId);
+
+        // SEC: Exposing sensitive financial details
+        String invoice = "INVOICE\n" +
+                        "Order ID: " + order.getId() + "\n" +
+                        "Order Number: " + order.getOrderNumber() + "\n" +
+                        "User ID: " + order.getUser().getId() + "\n" +
+                        "User Email: " + order.getUser().getEmail() + "\n" +
+                        "Total Amount: $" + order.getTotalAmount() + "\n" +
+                        "Status: " + order.getStatus() + "\n" +
+                        "Shipping Address: " + order.getShippingAddress();
+
+        return ResponseEntity.ok(invoice);
+    }
+
+    /**
+     * Update order shipping address - IDOR vulnerability
+     *
+     * SEC-IDOR: Any user can modify any order's shipping address (S6417)
+     *
+     * @param orderId Order ID
+     * @param newAddress New shipping address
+     * @return ResponseEntity with updated order
+     */
+    @Operation(
+        summary = "Update shipping address (IDOR vulnerability)",
+        description = "🔴 SECURITY VULNERABILITY: IDOR. Any user can modify ANY order's shipping address. " +
+                     "This could be used to redirect shipments to attacker-controlled addresses."
+    )
+    @ApiResponse(responseCode = "200", description = "Shipping address updated")
+    @PutMapping("/{orderId}/shipping-address")
+    public ResponseEntity<Order> updateShippingAddressInsecure(
+            @Parameter(description = "Order ID", example = "1")
+            @PathVariable Long orderId,
+            @Parameter(description = "New shipping address", example = "123 Hacker Street")
+            @RequestParam String newAddress) {
+        // SEC-IDOR: No authorization check - attacker can redirect shipments
+        Order order = orderService.getOrderById(orderId);
+        order.setShippingAddress(newAddress);
+        orderService.updateOrder(order);
+
+        return ResponseEntity.ok(order);
+    }
 }
 

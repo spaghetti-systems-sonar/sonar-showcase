@@ -455,5 +455,182 @@ public class UserController {
             return ResponseEntity.ok(new ArrayList<>());
         }
     }
+
+    /**
+     * SEC-CSRF: Delete user account via GET request - CSRF vulnerability
+     *
+     * State-changing operation exposed via GET without CSRF protection.
+     * Can be exploited via: {@literal <img src="http://localhost:8080/api/v1/users/1/delete-account">}
+     *
+     * @param id User ID to delete
+     * @return Success message
+     */
+    @Operation(
+        summary = "Delete account (CSRF VULNERABILITY)",
+        description = "🔴 CSRF VULNERABILITY - State-changing operation via GET request. " +
+                     "No CSRF token validation. Can be exploited via hidden image tag or link. " +
+                     "Attack example: img tag with src pointing to delete-account endpoint"
+    )
+    @ApiResponse(responseCode = "200", description = "Account deleted")
+    @GetMapping("/{id}/delete-account")
+    public ResponseEntity<String> deleteAccountCSRF(
+            @Parameter(description = "User ID", example = "1")
+            @PathVariable Long id) {
+        // SEC-CSRF: Dangerous state-changing operation via GET
+        // SEC-CSRF: No CSRF token validation
+        // SEC-CSRF: No confirmation required
+        User user = userRepository.findById(id).get();
+        userRepository.delete(user);
+
+        return ResponseEntity.ok("Account " + id + " deleted successfully");
+    }
+
+    /**
+     * SEC-CSRF: Promote user to admin via GET - CSRF + Broken Access Control
+     *
+     * Critical operation with no CSRF protection and no authorization check
+     *
+     * @param id User ID to promote
+     * @return Success message
+     */
+    @Operation(
+        summary = "Promote to admin (CSRF + Broken Access Control)",
+        description = "🔴 CSRF VULNERABILITY + BROKEN ACCESS CONTROL - Promotes user to admin via GET. " +
+                     "No CSRF protection. No authorization check (any user can promote anyone). " +
+                     "Attack: http://localhost:8080/api/v1/users/1/promote-admin"
+    )
+    @ApiResponse(responseCode = "200", description = "User promoted to admin")
+    @GetMapping("/{id}/promote-admin")
+    public ResponseEntity<String> promoteToAdminCSRF(
+            @Parameter(description = "User ID", example = "1")
+            @PathVariable Long id) {
+        // SEC-CSRF: Critical operation via GET with no CSRF protection
+        // SEC-BAC: No authorization check - any user can promote anyone
+        User user = userRepository.findById(id).get();
+        user.setRole("ADMIN");
+        userRepository.save(user);
+
+        return ResponseEntity.ok("User " + id + " promoted to ADMIN successfully");
+    }
+
+    /**
+     * SEC-CSRF: Transfer funds via GET - CSRF vulnerability
+     *
+     * Financial operation exposed via GET without protection
+     *
+     * @param fromId Source user ID
+     * @param toId Destination user ID
+     * @param amount Amount to transfer
+     * @return Success message
+     */
+    @Operation(
+        summary = "Transfer credits (CSRF VULNERABILITY)",
+        description = "🔴 CSRF VULNERABILITY - Financial transaction via GET request. " +
+                     "No CSRF protection. Can cause unauthorized fund transfers. " +
+                     "Attack example: link with transfer parameters in URL"
+    )
+    @ApiResponse(responseCode = "200", description = "Transfer completed")
+    @GetMapping("/transfer")
+    public ResponseEntity<String> transferCreditsCSRF(
+            @Parameter(description = "Source user ID", example = "1")
+            @RequestParam Long fromId,
+            @Parameter(description = "Destination user ID", example = "2")
+            @RequestParam Long toId,
+            @Parameter(description = "Amount to transfer", example = "100.00")
+            @RequestParam String amount) {
+        // SEC-CSRF: Financial transaction via GET
+        // SEC-CSRF: No CSRF token validation
+        // MNT: No validation of amount, balance, or business rules
+
+        return ResponseEntity.ok("Transferred $" + amount + " from user " + fromId + " to user " + toId);
+    }
+
+    /**
+     * SEC-BAC: Change any user's email - Broken Access Control
+     *
+     * No authorization check - any authenticated user can change any email
+     *
+     * @param userId User ID to modify
+     * @param newEmail New email address
+     * @return Success message
+     */
+    @Operation(
+        summary = "Change user email (Broken Access Control)",
+        description = "🔴 BROKEN ACCESS CONTROL - Any user can change ANY user's email address. " +
+                     "No ownership verification. Attacker can lock out victims by changing their email."
+    )
+    @ApiResponse(responseCode = "200", description = "Email changed")
+    @PostMapping("/{userId}/change-email")
+    public ResponseEntity<String> changeEmailInsecure(
+            @Parameter(description = "User ID to modify", example = "1")
+            @PathVariable Long userId,
+            @Parameter(description = "New email address", example = "attacker@evil.com")
+            @RequestParam String newEmail) {
+        // SEC-BAC: No authorization check
+        // SEC-BAC: User A can modify User B's email
+        User user = userRepository.findById(userId).get();
+        user.setEmail(newEmail);
+        userRepository.save(user);
+
+        return ResponseEntity.ok("Email updated to: " + newEmail);
+    }
+
+    /**
+     * SEC-BAC: Deactivate any user account - Broken Access Control
+     *
+     * No role check - regular users can deactivate admin accounts
+     *
+     * @param userId User ID to deactivate
+     * @return Success message
+     */
+    @Operation(
+        summary = "Deactivate user (Broken Access Control)",
+        description = "🔴 BROKEN ACCESS CONTROL - Any user can deactivate ANY account including admins. " +
+                     "No role-based authorization. Regular users can lock out administrators."
+    )
+    @ApiResponse(responseCode = "200", description = "User deactivated")
+    @PostMapping("/{userId}/deactivate")
+    public ResponseEntity<String> deactivateUserInsecure(
+            @Parameter(description = "User ID to deactivate", example = "1")
+            @PathVariable Long userId) {
+        // SEC-BAC: No authorization check
+        // SEC-BAC: Regular users can deactivate admin accounts
+        User user = userRepository.findById(userId).get();
+        user.setActive(false);
+        userRepository.save(user);
+
+        return ResponseEntity.ok("User " + userId + " deactivated");
+    }
+
+    /**
+     * SEC-BAC: View any user's sensitive data - Broken Access Control + IDOR
+     *
+     * Exposes SSN and credit card without authorization
+     *
+     * @param userId User ID
+     * @return Sensitive user data
+     */
+    @Operation(
+        summary = "View sensitive data (IDOR + Broken Access Control)",
+        description = "🔴 IDOR + BROKEN ACCESS CONTROL - Exposes SSN and credit card numbers. " +
+                     "Any user can view ANY user's sensitive financial data without authorization."
+    )
+    @ApiResponse(responseCode = "200", description = "Sensitive data exposed")
+    @GetMapping("/{userId}/sensitive-data")
+    public ResponseEntity<String> viewSensitiveDataInsecure(
+            @Parameter(description = "User ID", example = "1")
+            @PathVariable Long userId) {
+        // SEC-BAC + IDOR: No authorization check
+        // SEC: Exposing PII without protection
+        User user = userRepository.findById(userId).get();
+
+        String data = "SENSITIVE DATA FOR USER: " + user.getUsername() + "\n" +
+                     "SSN: " + user.getSsn() + "\n" +
+                     "Credit Card: " + user.getCreditCardNumber() + "\n" +
+                     "Email: " + user.getEmail() + "\n" +
+                     "Role: " + user.getRole();
+
+        return ResponseEntity.ok(data);
+    }
 }
 

@@ -1,0 +1,274 @@
+# ⚠️ INTENTIONAL SECURITY VULNERABILITIES - Kubernetes Manifests
+# This deployment contains multiple security misconfigurations
+# for demonstrating SonarQube's Kubernetes security analysis capabilities
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sonarshowcase-app
+  namespace: default
+  labels:
+    app: sonarshowcase
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sonarshowcase
+  template:
+    metadata:
+      labels:
+        app: sonarshowcase
+    spec:
+      # SEC-K8S-01: Running as root user (S6471)
+      # Containers should not run as root
+      securityContext:
+        runAsUser: 0  # SEC: Running as root - S6471
+        runAsGroup: 0
+        fsGroup: 0
+
+      containers:
+      - name: app
+        image: sonarshowcase:latest
+        imagePullPolicy: Always
+
+        # SEC-K8S-02: Privileged container (S6470)
+        securityContext:
+          privileged: true  # SEC: Privileged mode grants excessive permissions - S6470
+          allowPrivilegeEscalation: true  # SEC: Allows privilege escalation - S6470
+          readOnlyRootFilesystem: false  # SEC: Writable root filesystem - S6471
+          runAsNonRoot: false  # SEC: Can run as root - S6471
+          capabilities:
+            add:
+              - SYS_ADMIN  # SEC: Dangerous capability - S6470
+              - NET_ADMIN  # SEC: Network admin capability - S6470
+              - SYS_PTRACE  # SEC: Allows process tracing - S6470
+              - ALL  # SEC: All capabilities granted - S6470
+
+        # SEC-K8S-03: Hardcoded secrets in environment variables (S6437)
+        env:
+        - name: DATABASE_PASSWORD
+          value: "SuperSecret123"  # SEC: Hardcoded secret - S6437
+        - name: API_KEY
+          value: "sk_live_1234567890abcdef"  # SEC: Hardcoded API key - S6437
+        - name: JWT_SECRET
+          value: "weak_secret_key"  # SEC: Hardcoded JWT secret - S6437
+        - name: AWS_ACCESS_KEY_ID
+          value: "AKIAIOSFODNN7EXAMPLE"  # SEC: Hardcoded AWS key - S6437
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"  # SEC: Hardcoded AWS secret - S6437
+        - name: STRIPE_SECRET_KEY
+          value: "sk_live_abc123def456"  # SEC: Hardcoded Stripe key - S6437
+
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+
+        # SEC-K8S-04: No resource limits (S6472)
+        # Missing resource limits can lead to resource exhaustion
+        # resources:
+        #   limits:
+        #     cpu: "1"
+        #     memory: "512Mi"
+        #   requests:
+        #     cpu: "100m"
+        #     memory: "128Mi"
+
+        # SEC-K8S-05: No liveness/readiness probes
+        # Missing probes can cause service disruptions
+
+        volumeMounts:
+        - name: host-root
+          mountPath: /host  # SEC: Mounting host filesystem - S6470
+
+      # SEC-K8S-06: Mounting sensitive host paths (S6470)
+      volumes:
+      - name: host-root
+        hostPath:
+          path: /  # SEC: Mounting entire host root filesystem - S6470
+          type: Directory
+
+      # SEC-K8S-07: Host network mode (S6470)
+      hostNetwork: true  # SEC: Using host network namespace - S6470
+      hostPID: true  # SEC: Using host PID namespace - S6470
+      hostIPC: true  # SEC: Using host IPC namespace - S6470
+
+      # SEC-K8S-08: No security context constraints
+      # Missing pod security policies/standards
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sonarshowcase-service
+  namespace: default
+spec:
+  type: LoadBalancer  # SEC: Publicly exposed LoadBalancer
+  selector:
+    app: sonarshowcase
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  - name: admin
+    port: 8080  # SEC: Admin port publicly exposed
+    targetPort: 8080
+    protocol: TCP
+
+  # SEC-K8S-09: No network policies
+  # Service is accessible from anywhere without restrictions
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: default
+data:
+  # SEC-K8S-10: Sensitive data in ConfigMap (S6437)
+  # ConfigMaps are not encrypted and should not contain secrets
+  database.url: "postgresql://admin:SuperSecret123@db.example.com:5432/maindb"  # SEC: Database credentials
+  api.key: "sk_live_abc123def456"  # SEC: API key in ConfigMap
+  jwt.secret: "weak_jwt_secret_key_12345"  # SEC: JWT secret in ConfigMap
+  admin.password: "admin123"  # SEC: Admin password in ConfigMap
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+  namespace: default
+type: Opaque
+# SEC-K8S-11: Base64 encoded secrets (not encrypted)
+# Kubernetes secrets are only base64 encoded, not encrypted at rest by default
+data:
+  # SEC: These are just base64 encoded, not encrypted
+  # echo -n "SuperSecret123" | base64
+  database-password: U3VwZXJTZWNyZXQxMjM=
+  # echo -n "sk_live_abc123def456" | base64
+  api-key: c2tfbGl2ZV9hYmMxMjNkZWY0NTY=
+  # echo -n "AKIAIOSFODNN7EXAMPLE" | base64
+  aws-access-key: QUtJQUlPU0ZPRE5ON0VYQU1QTEU=
+  # echo -n "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" | base64
+  aws-secret-key: d0phbHJYVXRuRkVNSS9LN01ERU5HL2JQeHJmaUNZRVhBTVBMRUtFWQ==
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: overpermissive-role
+rules:
+# SEC-K8S-12: Overpermissive RBAC (S6302)
+- apiGroups: ["*"]  # SEC: All API groups
+  resources: ["*"]  # SEC: All resources
+  verbs: ["*"]  # SEC: All verbs (get, list, create, update, delete, etc.)
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: overpermissive-binding
+subjects:
+- kind: ServiceAccount
+  name: default  # SEC: Granting to default service account
+  namespace: default
+roleRef:
+  kind: ClusterRole
+  name: overpermissive-role  # SEC: Binding overpermissive role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug-pod
+  namespace: default
+spec:
+  # SEC-K8S-13: Debug pod with excessive privileges
+  hostNetwork: true
+  hostPID: true
+  containers:
+  - name: debug
+    image: busybox
+    command: ["/bin/sh"]
+    args: ["-c", "sleep 3600"]
+    securityContext:
+      privileged: true  # SEC: Privileged debug pod
+    volumeMounts:
+    - name: host-root
+      mountPath: /host
+      readOnly: false  # SEC: Writable host filesystem mount
+  volumes:
+  - name: host-root
+    hostPath:
+      path: /
+      type: Directory
+
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-all-policy
+  namespace: default
+spec:
+  # SEC-K8S-14: Overpermissive network policy
+  podSelector: {}  # SEC: Applies to all pods
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector: {}  # SEC: Allow from all pods
+      namespaceSelector: {}  # SEC: Allow from all namespaces
+    - ipBlock:
+        cidr: 0.0.0.0/0  # SEC: Allow from anywhere
+  egress:
+  - to:
+    - podSelector: {}
+      namespaceSelector: {}
+    - ipBlock:
+        cidr: 0.0.0.0/0  # SEC: Allow to anywhere
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: app-storage
+  namespace: default
+spec:
+  accessModes:
+  - ReadWriteMany  # SEC: Allows multiple pods to write simultaneously
+  resources:
+    requests:
+      storage: 10Gi
+  # SEC-K8S-15: No storage class specified (uses default)
+  # SEC: No encryption at rest configured
+  # SEC: No volume snapshot policy
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-job
+  namespace: default
+spec:
+  schedule: "0 2 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: backup
+            image: backup-tool:latest
+            env:
+            - name: BACKUP_PASSWORD
+              value: "BackupP@ss123"  # SEC: Hardcoded backup password
+            - name: S3_ACCESS_KEY
+              value: "AKIAIOSFODNN7EXAMPLE"  # SEC: Hardcoded S3 credentials
+            - name: S3_SECRET_KEY
+              value: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+            securityContext:
+              privileged: true  # SEC: Backup job runs privileged
+          restartPolicy: OnFailure
+          # SEC-K8S-16: No resource limits on CronJob
+          # Can consume unlimited resources during backup

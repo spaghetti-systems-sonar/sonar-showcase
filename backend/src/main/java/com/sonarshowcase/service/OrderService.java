@@ -173,7 +173,7 @@ public class OrderService {
     /**
      * MNT: Part of 6-level cycle - OrderService -> PaymentService -> ...
      * Completes the 6-level cycle back to PaymentService
-     * 
+     *
      * @param order Order to process payment for
      * @param cardNumber Credit card number
      * @return true if payment processed
@@ -181,6 +181,18 @@ public class OrderService {
     public boolean processOrderPayment(Order order, String cardNumber) {
         // MNT: Using PaymentService completes 6-level cycle: OrderService -> PaymentService -> EmailService -> ...
         return paymentService.processPayment(order, cardNumber, "123");
+    }
+
+    /**
+     * Updates an existing order
+     * No ownership validation - used by IDOR vulnerable endpoints
+     *
+     * @param order Order to update
+     * @return Updated order
+     */
+    public Order updateOrder(Order order) {
+        // MNT: No validation or ownership check
+        return orderRepository.save(order);
     }
 }
 
