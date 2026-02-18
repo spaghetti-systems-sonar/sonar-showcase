@@ -4,6 +4,21 @@ A demonstration monolith application (Spring Boot + React/TypeScript) designed t
 
 > ⚠️ **WARNING:** This application intentionally contains security vulnerabilities, bugs, and code smells for educational purposes. DO NOT use in production!
 
+## 🎯 Purpose & Disclaimer
+
+**This is a dummy/demo application created exclusively for showcasing SonarQube/SonarCloud capabilities.**
+
+This application is **NOT** intended to be a functional e-commerce platform. It is a training and demonstration tool that:
+
+- ✅ **Demonstrates** how SonarQube detects security vulnerabilities, bugs, and code smells
+- ✅ **Provides** realistic code examples for learning static analysis
+- ✅ **Showcases** SonarQube's ability to identify issues across multiple languages (Java, TypeScript)
+- ❌ **Should NEVER** be deployed to production environments
+- ❌ **Is NOT** a secure or functional application
+- ❌ **Does NOT** follow security or coding best practices (intentionally)
+
+**All vulnerabilities, bugs, and poor coding practices in this codebase are intentional and documented for educational purposes.**
+
 ## Architecture
 
 This is a **monolith architecture** where:
@@ -197,11 +212,13 @@ The application includes automatically generated API documentation using SpringD
 - **OpenAPI YAML:** http://localhost:8080/v3/api-docs.yaml
 
 The documentation is automatically generated from the code and includes:
-- All REST API endpoints (27 endpoints across 4 controllers)
+- All REST API endpoints (43 endpoints across 11 controllers)
 - Request/response schemas
 - Parameter descriptions with examples
 - Security warnings for vulnerable endpoints
 - Response codes and descriptions
+
+**Controllers:** HealthController, UserController, OrderController, ActivityLogController, FileController, AuthController, XmlController, ProxyController, SystemController, DataImportController, ValidationController
 
 > **Note:** The documentation is generated at runtime. Start the application to access it.
 > 
@@ -364,7 +381,22 @@ curl -X POST http://localhost:8080/api/v1/users \
 
 ## Intentional Issues for SonarCloud Demo
 
-### Security (100+ issues)
+This application contains **300+ intentional issues** across three categories to demonstrate SonarQube's comprehensive analysis capabilities:
+
+### Security (70+ critical security vulnerabilities)
+
+**Vulnerability Categories:**
+- 🔴 **SQL Injection** - 10+ instances across UserController, ActivityLogController, and repository implementations
+- 🔴 **Path Traversal** - 8 endpoints in FileController allowing arbitrary file access
+- 🔴 **XXE Injection** - 2 endpoints processing unsafe XML
+- 🔴 **SSRF** - 3 endpoints allowing server-side request forgery
+- 🔴 **Command Injection** - 3 endpoints with OS command injection
+- 🔴 **Insecure Deserialization** - 2 endpoints vulnerable to RCE
+- 🔴 **ReDoS** - 3 endpoints with catastrophic backtracking patterns
+- 🔴 **JWT Vulnerabilities** - Weak secrets, no expiration, accepts "none" algorithm
+- 🔴 **LDAP Injection** - Unsafe LDAP queries
+- 🔴 **Supply Chain** - 4 malicious npm packages + vulnerable dependencies
+- 🔴 **Other** - Hardcoded credentials, XSS, weak crypto, CORS wildcard
 
 #### SQL Injection (S3649) - 10+ instances
 | Endpoint | Attack Vector | Description |
@@ -484,7 +516,7 @@ The `malicious-attic` module contains intentionally malicious packages and vulne
 - Stale closure in useEffect
 
 ### Maintainability (200+ issues)
-- God class (DataManager.java - 750+ lines)
+- God class (DataManager.java - 820 lines in util/ package)
 - Extreme cognitive complexity (processComplexBusinessLogic - complexity > 50)
 - Long parameter list (createDetailedReport - 12 parameters)
 - Magic numbers everywhere
