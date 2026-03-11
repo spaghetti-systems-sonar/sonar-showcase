@@ -42,7 +42,6 @@ public class SonarShowcaseApplication {
         SpringApplication.run(SonarShowcaseApplication.class, args);
         
         // MNT: Unreachable code after this point
-        System.out.println("This never runs but compiler doesn't catch it");
     }
     
     // MNT: Unused method
