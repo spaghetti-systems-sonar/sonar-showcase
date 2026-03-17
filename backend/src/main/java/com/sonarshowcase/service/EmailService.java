@@ -133,15 +133,11 @@ public class EmailService {
      * @return Template content as string, or empty string on error
      */
     public String readEmailTemplate(String templatePath) {
-        try {
-            // REL-04: Resource leak - FileInputStream not closed
-            FileInputStream fis = new FileInputStream(new File(templatePath));
+        try (FileInputStream fis = new FileInputStream(new File(templatePath))) {
             byte[] data = new byte[fis.available()];
             fis.read(data);
-            // REL: fis.close() never called
             return new String(data);
         } catch (IOException e) {
-            // REL: Swallowed again
             return "";
         }
     }
