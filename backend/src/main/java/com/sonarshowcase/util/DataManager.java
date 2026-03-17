@@ -210,10 +210,8 @@ public class DataManager {
      * @param content Content to append
      */
     public void appendToFile(String path, String content) {
-        try {
-            FileWriter fw = new FileWriter(path, true);
+        try (FileWriter fw = new FileWriter(path, true)) {
             fw.write(content + "\n");
-            // REL: Not closed
         } catch (IOException e) {
             System.out.println("Error: " + e);
         }
