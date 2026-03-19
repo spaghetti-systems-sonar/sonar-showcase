@@ -15,12 +15,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication
 public class SonarShowcaseApplication {
-    
-    /**
-     * Default constructor for SonarShowcaseApplication.
-     */
-    public SonarShowcaseApplication() {
-    }
 
     /**
      * SEC: Hardcoded secret - used for "quick testing"
