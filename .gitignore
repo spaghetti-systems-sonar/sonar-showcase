@@ -63,6 +63,7 @@ coverage/
 .env
 .env.local
 .env.*.local
+.npmrc
 
 # ---- Generated Documentation
 **/target/site/

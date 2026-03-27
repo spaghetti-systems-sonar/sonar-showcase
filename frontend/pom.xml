@@ -57,10 +57,7 @@
                         <configuration>
                             <nodeVersion>${node.version}</nodeVersion>
                             <npmVersion>${npm.version}</npmVersion>
-                            <!-- Use corporate Artifactory for downloading npm binary -->
-                            <npmDownloadRoot>https://repox.jfrog.io/artifactory/npm/npm/-/</npmDownloadRoot>
-                            <!-- Reference server credentials from settings.xml -->
-                            <serverId>artifactory</serverId>
+                            <!-- npmDownloadRoot and serverId are configured via profile below -->
                         </configuration>
                     </execution>
 
@@ -193,6 +190,40 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Profile for local development with corporate Artifactory proxy -->
+        <profile>
+            <id>artifactory</id>
+            <activation>
+                <property>
+                    <name>env.USE_ARTIFACTORY</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.github.eirslett</groupId>
+                        <artifactId>frontend-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>install-node-and-npm</id>
+                                <configuration>
+                                    <nodeVersion>${node.version}</nodeVersion>
+                                    <npmVersion>${npm.version}</npmVersion>
+                                    <!-- Use corporate Artifactory for downloading npm binary -->
+                                    <npmDownloadRoot>https://repox.jfrog.io/artifactory/npm/npm/-/</npmDownloadRoot>
+                                    <!-- Reference server credentials from settings.xml -->
+                                    <serverId>artifactory</serverId>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
 
