@@ -20,6 +20,7 @@ public class SonarShowcaseApplication {
      * Default constructor for SonarShowcaseApplication.
      */
     public SonarShowcaseApplication() {
+        // Default constructor required by Spring Boot framework
     }
 
     /**
