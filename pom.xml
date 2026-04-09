@@ -32,7 +32,7 @@
         <jacoco.version>0.8.11</jacoco.version>
 
         <!-- SonarCloud configuration -->
-        <sonar.projectKey>sonar-showcase</sonar.projectKey>
+        <sonar.projectKey>spaghetti-systems-sonar_sonar-showcase</sonar.projectKey>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <sonar.organization>spaghetti-systems-github</sonar.organization>
         <sonar.maven.scanAll>true</sonar.maven.scanAll>
