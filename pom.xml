@@ -36,6 +36,7 @@
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
         <sonar.organization>spaghetti-systems-github</sonar.organization>
         <sonar.maven.scanAll>true</sonar.maven.scanAll>
+        <sonar.terraform.provider.aws.version>5.x</sonar.terraform.provider.aws.version>     
         <!-- Root module: include dependency files (for SCA), root infra, and secrets demo; exclude only build/output dirs -->
         <sonar.sources>.</sonar.sources>
         <sonar.inclusions>**/pom.xml,**/package.json,**/package-lock.json,.github/**,Dockerfile,docker-compose.yml,*.pem,secrets.yml,terraform/**,k8s/**</sonar.inclusions>
