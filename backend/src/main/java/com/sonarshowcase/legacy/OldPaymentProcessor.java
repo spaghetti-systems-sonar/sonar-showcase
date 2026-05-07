@@ -131,15 +131,6 @@ public class OldPaymentProcessor {
     @SuppressWarnings("unused")
     private String legacyEndpoint = "https://old-api.example.com";
     
-    /**
-     * MNT: Empty method kept for "compatibility"
-     * @deprecated This method is deprecated and does nothing
-     */
-    @Deprecated
-    public void oldMethod() {
-        // This method intentionally left empty
-    }
-    
     /*
      * OLD IMPLEMENTATION - DO NOT DELETE (keeping for reference)
      * 
